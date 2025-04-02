@@ -1,0 +1,27 @@
+[package]
+name = "i2c_scanner"
+description = "A simple `no_std` scanner for I2C buses"
+version = "0.1.0"
+edition = "2024"
+
+authors = ["Jonathan D. Baker <jonathan@ardent.tech>"]
+homepage = "TODO"
+
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "TODO"
+
+categories = ["embedded", "no-std", "asynchronous"]
+keywords = ["embedded-hal", "i2c"]
+
+[features]
+default = []
+async = []
+
+[dependencies]
+embedded-hal = "1.0.0"
+embedded-hal-async = "1.0.0"
+
+[dev-dependencies]
+embedded-hal-mock = { version = "0.11.1", default-features = false, features = ["eh1", "embedded-hal-async"] }
+tokio = { version = "1.44.1", features = ["rt", "macros", "test-util"] }
