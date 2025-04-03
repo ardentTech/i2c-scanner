@@ -22,6 +22,10 @@ impl<I2C: I2c> I2cScanner<I2C> {
     }
 
     /// Check for a device at a specific 7-bit address
+    #[cfg(not(feature = "async"))]
+    pub fn check(&mut self, addr: u8) -> bool {
+        self.i2c.read(addr, &mut [0]).is_ok()
+    }
     #[cfg(feature = "async")]
     pub async fn check(&mut self, addr: u8) -> bool {
         self.i2c.read(addr, &mut [0]).await.is_ok()
@@ -30,6 +34,19 @@ impl<I2C: I2c> I2cScanner<I2C> {
     /// Scans all available 7-bit addresses
     ///
     /// Returns [u8; 128] array where 0 == miss and 1 == hit for each index as an i2c device address
+    #[cfg(not(feature = "async"))]
+    pub fn scan(&mut self) -> [u8; 128] {
+        let mut addrs = [0u8; 128];
+
+        for i in 0..addrs.len() {
+            match self.i2c.read(i as u8, &mut [0]) {
+                Ok(_) => addrs[i] = 1,
+                Err(_) => {}
+            }
+        }
+
+        addrs
+    }
     #[cfg(feature = "async")]
     pub async fn scan(&mut self) -> [u8; 128] {
         let mut addrs = [0u8; 128];
@@ -51,6 +68,22 @@ mod tests {
     use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
     use super::*;
 
+    #[cfg(not(feature = "async"))]
+    #[test]
+    fn check_hit() {
+        let addr = 3u8;
+        let expectations = [
+            I2cTransaction::read(addr, [0x00].to_vec())
+        ];
+        let i2c = I2cMock::new(&expectations);
+        let mut scanner = I2cScanner::new(i2c);
+        let res = scanner.check(addr);
+
+        assert!(res);
+
+        scanner.destroy().done();
+    }
+
     #[cfg(feature = "async")]
     #[tokio::test]
     async fn check_hit() {
@@ -63,6 +96,22 @@ mod tests {
         let res = scanner.check(addr).await;
 
         assert!(res);
+
+        scanner.destroy().done();
+    }
+
+    #[cfg(not(feature = "async"))]
+    #[test]
+    fn check_miss() {
+        let addr = 3u8;
+        let expectations = [
+            I2cTransaction::read(addr, [0x00].to_vec()).with_error(ErrorKind::Other)
+        ];
+        let i2c = I2cMock::new(&expectations);
+        let mut scanner = I2cScanner::new(i2c);
+        let res = scanner.check(addr);
+
+        assert!(!res);
 
         scanner.destroy().done();
     }
@@ -83,6 +132,19 @@ mod tests {
         scanner.destroy().done();
     }
 
+    #[cfg(not(feature = "async"))]
+    #[test]
+    fn scan_miss() {
+        let expectations: [I2cTransaction; 128] = core::array::from_fn(|i| I2cTransaction::read(i as u8, [0x00].to_vec()).with_error(ErrorKind::Other));
+        let i2c = I2cMock::new(&expectations);
+        let mut scanner = I2cScanner::new(i2c);
+        let res = scanner.scan();
+
+        assert_eq!(res, [0; 128]);
+
+        scanner.destroy().done();
+    }
+
     #[cfg(feature = "async")]
     #[tokio::test]
     async fn scan_miss() {
@@ -92,6 +154,20 @@ mod tests {
         let res = scanner.scan().await;
 
         assert_eq!(res, [0; 128]);
+
+        scanner.destroy().done();
+    }
+
+    #[cfg(not(feature = "async"))]
+    #[test]
+    fn scan_one_hit() {
+        let mut expectations: [I2cTransaction; 128] = core::array::from_fn(|i| I2cTransaction::read(i as u8, [0x00].to_vec()).with_error(ErrorKind::Other));
+        expectations[8] = I2cTransaction::read(8u8, [0x00].to_vec());
+        let i2c = I2cMock::new(&expectations);
+        let mut scanner = I2cScanner::new(i2c);
+        let res = scanner.scan();
+
+        assert_eq!(1u8, res.iter().sum());
 
         scanner.destroy().done();
     }
@@ -106,6 +182,22 @@ mod tests {
         let res = scanner.scan().await;
 
         assert_eq!(1u8, res.iter().sum());
+
+        scanner.destroy().done();
+    }
+
+    #[cfg(not(feature = "async"))]
+    #[test]
+    fn scan_multiple_hits() {
+        let mut expectations: [I2cTransaction; 128] = core::array::from_fn(|i| I2cTransaction::read(i as u8, [0x00].to_vec()).with_error(ErrorKind::Other));
+        for i in [2, 4, 8, 16] {
+            expectations[i] = I2cTransaction::read(i as u8, [0x00].to_vec());
+        }
+        let i2c = I2cMock::new(&expectations);
+        let mut scanner = I2cScanner::new(i2c);
+        let res = scanner.scan();
+
+        assert_eq!(4u8, res.iter().sum());
 
         scanner.destroy().done();
     }
