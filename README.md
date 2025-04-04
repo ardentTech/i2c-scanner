@@ -5,13 +5,13 @@ A simple `no_std` scanner for I2C buses.
 ## Features
 
 - [x] `no_std` support
-- [ ] blocking impl
+- [x] blocking impl
 - [x] `async` impl (via `async` feature)
-- [ ] Support 10-bit addresses
-- [ ] Scan all addresses on an I2C bus
-- [ ] Check a specific address on an I2C bus
+- [x] Scan all addresses on an I2C bus
+- [x] Check a specific address on an I2C bus
 - [ ] Scan/check at different speeds
-- [ ] Tests
+- [x] 7-bit Tests
+- [ ] 10-bit Tests
 
 ## Development
 * Run blocking tests: `$ cargo test`
