@@ -1,6 +1,7 @@
 #![no_std]
 #[cfg(not(feature = "async"))]
 use embedded_hal as hal;
+use embedded_hal::i2c::SevenBitAddress;
 #[cfg(feature = "async")]
 use embedded_hal_async as hal;
 
@@ -23,11 +24,11 @@ impl<I2C: I2c> I2cScanner<I2C> {
 
     /// Check for a device at a specific 7-bit address
     #[cfg(not(feature = "async"))]
-    pub fn check(&mut self, addr: u8) -> bool {
+    pub fn check(&mut self, addr: SevenBitAddress) -> bool {
         self.i2c.read(addr, &mut [0]).is_ok()
     }
     #[cfg(feature = "async")]
-    pub async fn check(&mut self, addr: u8) -> bool {
+    pub async fn check(&mut self, addr: SevenBitAddress) -> bool {
         self.i2c.read(addr, &mut [0]).await.is_ok()
     }
 
@@ -35,7 +36,7 @@ impl<I2C: I2c> I2cScanner<I2C> {
     ///
     /// Returns [u8; 128] array where 0 == miss and 1 == hit for each index as an i2c device address
     #[cfg(not(feature = "async"))]
-    pub fn scan(&mut self) -> [u8; 128] {
+    pub fn scan(&mut self) -> [SevenBitAddress; 128] {
         let mut addrs = [0u8; 128];
 
         for i in 0..addrs.len() {
@@ -48,7 +49,7 @@ impl<I2C: I2c> I2cScanner<I2C> {
         addrs
     }
     #[cfg(feature = "async")]
-    pub async fn scan(&mut self) -> [u8; 128] {
+    pub async fn scan(&mut self) -> [SevenBitAddress; 128] {
         let mut addrs = [0u8; 128];
 
         for i in 0..addrs.len() {
